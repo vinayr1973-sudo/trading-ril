@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "trading-ril"
+version = "1.0.0"
+description = "Research Intelligence Layer - peer-reviewed AI signal validation for trading bots"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [{name = "Vinay Sharma", email = "vinay@greenrisol.com"}]
+keywords = ["trading", "ai", "agents", "mcp", "claude", "research", "commodities", "signal-validation"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial :: Investment",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+requires-python = ">=3.11"
+dependencies = [
+    "anthropic>=0.50.0",
+    "mcp>=1.0.0",
+]
+
+[project.optional-dependencies]
+firestore = ["google-cloud-firestore>=2.19.0"]
+oasis = ["camel-oasis>=0.1.0"]
+trading-agents = ["tradingagents>=0.2.4"]
+full = ["google-cloud-firestore>=2.19.0", "camel-oasis>=0.1.0", "tradingagents>=0.2.4"]
+
+[project.urls]
+Homepage = "https://github.com/vinayr1973-sudo/trading-ril"
+Documentation = "https://github.com/vinayr1973-sudo/trading-ril/tree/main/docs"
+Repository = "https://github.com/vinayr1973-sudo/trading-ril"
+Issues = "https://github.com/vinayr1973-sudo/trading-ril/issues"
+
+[project.scripts]
+trading-ril-server = "mcp_server.server:main"
+trading-ril-morning = "trading_ril.runners.morning_batch:main"
+
+[tool.setuptools.packages.find]
+include = ["trading_ril*", "mcp_server*"]
