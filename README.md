@@ -152,7 +152,7 @@ Built entirely on open source. MIT licensed. No per-seat fees. No cloud lock-in.
 
 ## Who Built This
 
-Trading-RIL is the open source release of the research layer built for **TAH-2** — a personal commodity futures trading system on IBKR PRO.
+Trading-RIL is the open source release of the research layer built for **TAH-2** — a personal commodity futures trading system on IBKR PRO by Vinay Sharma.
 
 TAH-2 paper trades on GLOBEX micro futures (MGC, MCL, MES, MNQ, MHG, MNG). Every signal goes through this peer review before execution.
 
