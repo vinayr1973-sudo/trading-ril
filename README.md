@@ -63,7 +63,7 @@ claude mcp add trading-ril -- uvx trading-ril-server
 
 Or connect to the hosted MCP server (HTTP):
 ```bash
-claude mcp add --transport http trading-ril <MCP_URL_PLACEHOLDER>/mcp
+claude mcp add --transport http trading-ril https://trading-ril-1073730545783.us-central1.run.app/mcp
 ```
 
 Then in Claude Code, ask:

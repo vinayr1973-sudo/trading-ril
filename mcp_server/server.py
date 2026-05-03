@@ -137,9 +137,16 @@ def main():
     transport = os.environ.get("MCP_TRANSPORT", "stdio").lower()
     port      = int(os.environ.get("PORT", "8080"))
     if transport == "streamable-http":
-        logger.info(f"Starting trading-ril MCP server on streamable-http :{port}")
+        # Cloud Run / hosted MCP: the runtime hostname is not known at build time
+        # (e.g. trading-ril-1073730545783.us-central1.run.app), so disable
+        # DNS rebinding protection. The endpoint is still public and HTTPS.
+        from mcp.server.transport_security import TransportSecuritySettings
+        mcp.settings.transport_security = TransportSecuritySettings(
+            enable_dns_rebinding_protection=False,
+        )
         mcp.settings.host = "0.0.0.0"
         mcp.settings.port = port
+        logger.info(f"Starting trading-ril MCP server on streamable-http :{port}")
         mcp.run(transport="streamable-http")
     else:
         logger.info("Starting trading-ril MCP server on stdio")
