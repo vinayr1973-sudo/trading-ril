@@ -39,6 +39,7 @@ pip install trading-ril
 ```python
 from trading_ril import RILGate0
 
+# Layer 0 only (Bull/Bear debate). No external state required.
 gate = RILGate0(anthropic_api_key="sk-ant-...")
 
 result = gate.evaluate(
@@ -49,9 +50,31 @@ result = gate.evaluate(
 )
 
 print(result["gate0_pass"])           # True
-print(result["confidence_modifier"])  # -0.010 (market agrees - ease threshold)
-print(result["research_brief"])       # "MGC MACRO_GOLD | Research:Overweight | ..."
+print(result["confidence_modifier"])  # -0.010 (research agrees - ease threshold)
+print(result["research_brief"])       # "MGC MACRO_GOLD | Research:Overweight | Crowd:n/a | Swarm:n/a | ..."
 ```
+
+## Enabling all 3 layers (optional)
+
+By default Trading-RIL runs **Layer 0 only** (Bull/Bear debate). Layers 1 (OASIS crowd) and 2 (MiroFish swarm) require pre-computed daily signals stored in your own Firestore project — populated by `trading-ril-morning` once per day before market open.
+
+To enable Layers 1 + 2, pass `firestore_project`:
+
+```python
+gate = RILGate0(
+    anthropic_api_key="sk-ant-...",
+    firestore_project="your-gcp-project-id",  # reads tah2_oasis_signals + tah2_mirofish_signals
+)
+```
+
+And populate your Firestore once per day (typically 8am market local time):
+
+```bash
+trading-ril-morning --instruments MGC MCL MES MNQ MHG MNG \
+                    --firestore-project your-gcp-project-id
+```
+
+**Cost note:** the morning batch costs ~$0.08 (50 agents × 5 rounds for 6 instruments). Per-signal Layer 0 review is ~$0.03. Total: ~$0.38/day for 10 trades. Without the morning batch, you only pay the per-signal cost (~$0.03/trade).
 
 ## As a Claude Skill / MCP Server
 
@@ -65,6 +88,16 @@ Or connect to the hosted MCP server (HTTP):
 ```bash
 claude mcp add --transport http trading-ril https://trading-ril-1073730545783.us-central1.run.app/mcp
 ```
+
+The hosted server runs **Layer 0 only** (no Firestore — keeps it stateless and free for everyone).
+To get all 3 layers from the hosted server, pass your own `firestore_project` to the tool:
+
+```
+Review this trade with my Firestore: MGC, MACRO_GOLD, confidence 0.93,
+firestore_project=my-gcp-project-id, news: "Fed holds rates"
+```
+
+(Your GCP project's Firestore needs `tah2_oasis_signals` and `tah2_mirofish_signals` collections — populated by `trading-ril-morning`. The hosted server's service account does not have read access to your Firestore — it uses your project's own credentials via the MCP tool argument.)
 
 Then in Claude Code, ask:
 ```

@@ -58,22 +58,27 @@ class RILGate0:
         signal_confidence: float,
         news_context: str = "",
     ) -> dict:
-        """
-        Run peer review on a trading signal.
+        """Sync entry point. Use from non-async code (e.g. trading bots)."""
+        return asyncio.run(self.evaluate_async(instrument, strategy, signal_confidence, news_context))
 
-        Returns dict with: gate0_pass (bool), confidence_modifier (float),
-        research_brief (str), layer0/1/2 details, elapsed_secs.
-        """
+    async def evaluate_async(
+        self,
+        instrument: str,
+        strategy: str,
+        signal_confidence: float,
+        news_context: str = "",
+    ) -> dict:
+        """Async entry point. Use from async code (e.g. MCP server tool handlers)."""
         ctx = INSTRUMENT_CONTEXT.get(instrument, {
             "name": instrument,
             "drivers": "market fundamentals and sentiment",
         })
         start = time.time()
         try:
-            result = asyncio.run(asyncio.wait_for(
+            result = await asyncio.wait_for(
                 self._run_all(instrument, strategy, signal_confidence, news_context, ctx),
                 timeout=self.timeout,
-            ))
+            )
             result["elapsed_secs"] = round(time.time() - start, 1)
             if self._db:
                 self._persist(instrument, strategy, result)
@@ -99,16 +104,31 @@ class RILGate0:
             l1.get("modifier", 0.0) +
             l2.get("modifier", 0.0)
         ))
+
+        # Hard-no requires all three layers to agree bearish — and Layer 1/2
+        # only count when actually available (not the default no_firestore
+        # placeholder). Without Firestore, hard_no degrades to "needs Layer 0
+        # Sell at minimum", which is the correct conservative behavior.
+        l1_active = l1.get("status") not in ("no_firestore", "pending")
+        l2_active = l2.get("status") not in ("no_firestore", "pending")
         hard_no = (
             l0.get("rating") == "Sell" and
-            l1.get("dissent_rate", 0) > 0.50 and
-            l2.get("direction") in ("BEAR", "PENDING")
+            (not l1_active or l1.get("dissent_rate", 0) > 0.50) and
+            (not l2_active or l2.get("direction") == "BEAR")
+        )
+
+        crowd_str = (
+            f"Crowd dissent:{l1.get('dissent_rate', 0) * 100:.0f}%"
+            if l1_active else "Crowd:n/a"
+        )
+        swarm_str = (
+            f"Swarm:{l2.get('direction', 'PENDING')}"
+            if l2_active else "Swarm:n/a"
         )
         brief = (
             f"{instrument} {strategy} conf={confidence:.3f} | "
             f"Research:{l0.get('rating', 'Hold')} | "
-            f"Crowd dissent:{l1.get('dissent_rate', 0.35) * 100:.0f}% | "
-            f"Swarm:{l2.get('direction', 'PENDING')} | "
+            f"{crowd_str} | {swarm_str} | "
             f"Threshold adj:{total * 100:+.1f}%"
         )
         return {
